@@ -1,0 +1,7 @@
+ *.ps1
+*.json
+*.txt
+pending_id.txt
+key.txt
+team.txt
+participant.txt
