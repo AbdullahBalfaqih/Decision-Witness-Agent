@@ -140,27 +140,33 @@
         .chain-link{text-align:center;color:var(--purple);font-size:.65rem;padding:2px 0;opacity:.5}
 
         .toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(100px);background:rgba(15,15,12,.95);backdrop-filter:blur(20px);border:1px solid var(--cyan);border-radius:var(--rs);padding:10px 20px;color:var(--cyan);font-size:.8rem;font-weight:500;z-index:2000;transition:transform .4s;box-shadow:0 0 30px rgba(200,168,78,.2)}
-        .score-display{position:fixed;top:20px;right:20px;z-index:100;background:var(--card);backdrop-filter:blur(20px);border:1px solid var(--cyan);border-radius:var(--rs);padding:10px 20px;display:flex;flex-direction:column;align-items:center;box-shadow:0 0 30px rgba(200,168,78,.2);animation:slideIn .5s}
-        .score-val{font-size:1.8rem;font-weight:800;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1}
-        .score-label{font-size:.6rem;text-transform:uppercase;letter-spacing:1px;color:var(--text2);margin-top:4px}
-        @keyframes slideIn{from{transform:translateX(100px);opacity:0}to{transform:translateX(0);opacity:1}}
+        /* WINNING VERSION ADDITIONS */
+        .main-layout{display:grid;grid-template-columns:1fr 300px;gap:24px;align-items:start}
+        @media(max-width:1000px){.main-layout{grid-template-columns:1fr}}
 
-        .timeline-container{margin-top:20px;border-left:2px solid var(--border);padding-left:20px;margin-left:10px}
-        .timeline-item{position:relative;margin-bottom:24px}
-        .timeline-item::before{content:'';position:absolute;left:-27px;top:5px;width:12px;height:12px;background:var(--bg);border:2px solid var(--cyan);border-radius:50%;box-shadow:0 0 10px var(--glow)}
-        .timeline-date{font-size:.65rem;color:var(--muted);margin-bottom:4px}
-        .timeline-content{font-size:.85rem;color:var(--text2)}
+        .sidebar-card{background:var(--card);backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:var(--r);padding:24px;position:sticky;top:30px}
+        .timeline-v{list-style:none;position:relative;padding-left:20px;border-left:1px solid var(--border)}
+        .timeline-v-item{position:relative;margin-bottom:20px;font-size:.8rem}
+        .timeline-v-item::before{content:'';position:absolute;left:-26px;top:4px;width:10px;height:10px;border-radius:50%;background:var(--bg);border:2px solid var(--muted)}
+        .timeline-v-item.active::before{border-color:var(--cyan);box-shadow:0 0 10px var(--cyan)}
+        .timeline-v-date{font-size:.65rem;color:var(--muted);display:block;margin-bottom:2px}
+        .timeline-v-text{color:var(--text2);font-weight:600}
 
-        .msg-block{background:rgba(200,168,78,.03);border:1px solid rgba(200,168,78,.1);border-radius:var(--rs);padding:15px;margin-top:10px}
-        .block-label{font-size:.7rem;font-weight:800;color:var(--cyan);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;display:flex;align-items:center;gap:6px}
-        .block-text{font-size:.85rem;line-height:1.6;color:var(--text2)}
-        .warning-block{border-color:var(--red);background:rgba(196,92,74,.05)}
-        .warning-block .block-label{color:var(--red)}
+        .cert-card{background:linear-gradient(135deg,rgba(200,168,78,.1),rgba(10,10,10,.8));border:2px solid var(--cyan);border-radius:var(--r);padding:30px;position:relative;margin-top:20px;box-shadow:0 0 40px rgba(200,168,78,.1);animation:certIn .8s cubic-bezier(.17,.67,.83,.67)}
+        @keyframes certIn{from{transform:scale(.9);opacity:0}to{transform:scale(1);opacity:1}}
+        .cert-seal{position:absolute;top:20px;right:20px;width:60px;height:60px;background:var(--grad);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:30px;box-shadow:0 0 20px var(--glow);opacity:.8}
+        .cert-title{font-size:1.4rem;font-weight:800;color:var(--cyan);margin-bottom:15px;text-transform:uppercase;letter-spacing:2px}
+
+        .review-block{background:rgba(184,152,54,.08);border:1px solid var(--purple);border-radius:var(--rs);padding:18px;margin-top:15px;animation:fadeUp .5s}
+        .review-label{color:var(--purple);font-weight:800;font-size:.7rem;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+
+        .btn-rev{background:rgba(184,152,54,.15);color:var(--cyan);border:1px solid var(--purple);padding:12px 20px;font-weight:700;margin-top:10px;width:100%;justify-content:center}
+        .btn-rev:hover{background:rgba(184,152,54,.25);transform:translateY(-2px)}
 
         @media(max-width:640px){
             .score-display{top:auto;bottom:20px;right:10px;left:auto;padding:8px 15px}
             .score-val{font-size:1.4rem}
-            .app{padding:20px 14px 100px}
+            .main-layout{padding-bottom:120px}
         }
     </style>
 </head>
@@ -176,14 +182,16 @@
 
 <div class="app">
     <header class="hero">
-        <div class="badge"><span class="badge-dot"></span> Autonomous Accountability System • Hash Verified</div>
+        <div class="badge"><span class="badge-dot"></span> Autonomous Accountability System • Winning v9.5</div>
         <div class="hero-icon">🧠</div>
         <h1>Decision Witness Agent</h1>
-        <p>I don't just analyze. I witness, track, and enforce accountability over your decisions with cryptographic immutable integrity.</p>
+        <p>Witnessing, tracking, and enforcing your commitments with cryptographic immutable integrity.</p>
     </header>
 
-    <section class="card" id="input-panel">
-        <div class="stitle"><span class="ic">📝</span> Decision Input</div>
+    <div class="main-layout">
+        <div class="content-col">
+            <section class="card" id="input-panel">
+                <div class="stitle"><span class="ic">📝</span> New Decision Input</div>
         <div class="ig">
             <label for="ctx">Decision Context (optional)</label>
             <input type="text" id="ctx" placeholder="e.g., Choosing the best restaurant for dinner">
@@ -221,12 +229,27 @@
         </div>
     </section>
 
-    <section id="ledger-section" style="display:none">
-        <div class="card">
-            <div class="stitle"><span class="ic" style="background:rgba(236,72,153,.12)">⛓️</span> Blockchain Ledger</div>
-            <div id="chain-container"></div>
+            <section id="ledger-section" style="display:none">
+                <div class="card">
+                    <div class="stitle"><span class="ic" style="background:rgba(236,72,153,.12)">⛓️</span> Decision Ledger (Blockchain)</div>
+                    <div id="chain-container"></div>
+                </div>
+            </section>
         </div>
-    </section>
+
+        <aside class="sidebar-col">
+            <div class="sidebar-card">
+                <div class="stitle"><span class="ic">📅</span> Decision Timeline</div>
+                <div id="timeline-v" class="timeline-v">
+                    <div style="color:var(--muted); font-size:.7rem; text-align:center">No decisions logged.</div>
+                </div>
+                <hr style="border:0; border-top:1px solid var(--border); margin:20px 0">
+                <div class="stitle"><span class="ic">🧠</span> Autonomy</div>
+                <p style="font-size:.75rem; color:var(--text2); margin-bottom:12px">Run a proactive scan of your commitments to detect long-term patterns.</p>
+                <button class="btn btn-rev" id="rev-btn" onclick="startReview()">🧠 Run Autonomous Review</button>
+            </div>
+        </aside>
+    </div>
 
     <footer class="footer">
         <p>Decision Witness Agent — Built for <a href="https://synthesis.md/hack/" target="_blank">Synthesis Hackathon 2026</a></p>
@@ -242,11 +265,28 @@ let consistencyScore = parseInt(localStorage.getItem('dw_score') || '100');
 
 window.addEventListener('DOMContentLoaded', () => {
     updateScoreUI();
+    renderTimeline();
     if(blockchain.length > 0) {
         document.getElementById('ledger-section').style.display = 'block';
         renderLedger();
     }
 });
+
+function renderTimeline() {
+    const tl = document.getElementById('timeline-v');
+    if (decisions.length === 0) {
+        tl.innerHTML = '<div style="color:var(--muted); font-size:.7rem; text-align:center">No decisions logged.</div>';
+        return;
+    }
+    const recent = decisions.slice().reverse().slice(0, 10);
+    tl.innerHTML = recent.map(d => `
+        <li class="timeline-v-item active">
+            <span class="timeline-v-date">${new Date(d.timestamp).toLocaleDateString()}</span>
+            <span class="timeline-v-text">${esc(d.text)}</span>
+            <div style="font-size:0.6rem; color:var(--cyan)">${d.category}</div>
+        </li>
+    `).join('');
+}
 
 function updateScoreUI() {
     const el = document.getElementById('consistency-score');
@@ -286,17 +326,58 @@ function detectContradictions(currentText, currentCategory) {
     let issues = [];
     decisions.forEach(prev => {
         if (prev.category === currentCategory) {
-            // Simple keyword-based drift detection
-            const prevWords = prev.text.toLowerCase().split(' ');
-            const currentWords = currentText.toLowerCase().split(' ');
-            const overlap = currentWords.filter(w => prevWords.includes(w) && w.length > 3);
+            const prevWords = prev.text.toLowerCase().split(/\s+/).filter(w => w.length > 3);
+            const currentWords = currentText.toLowerCase().split(/\s+/).filter(w => w.length > 3);
             
-            if (overlap.length === 0 && currentWords.length > 3) {
-                issues.push(`Goal Drift: You previously committed to "${prev.text}" in ${prev.category}, but this new direction seems unrelated.`);
+            // Check for direct opposites or complete context switch in same category
+            const overlap = currentWords.filter(w => prevWords.includes(w));
+            if (overlap.length === 0 && currentWords.length > 2) {
+                issues.push(`Directional Pivot: You previously committed to "${prev.text}" in ${prev.category}. This new decision suggests a significant unannounced shift in strategy.`);
             }
         }
     });
     return issues;
+}
+
+async function startReview() {
+    const sec = document.getElementById('agent-section'); sec.style.display = 'block';
+    termBody().innerHTML = ''; 
+    setPipeline(-1);
+    sec.scrollIntoView({behavior:'smooth'});
+    
+    await typeMsg('phase-analyze', '🧠 AUTONOMOUS REVIEW', '> Initiating holistic commitment scan across temporal memory...');
+    await sleep(800);
+    
+    if (decisions.length < 2) {
+        await typeMsg('phase-think', '📝 SYSTEM NOTE', '> Insufficient data for pattern analysis. Keep witnessing decisions to enable autonomy.');
+        return;
+    }
+
+    const categories = [...new Set(decisions.map(d => d.category))];
+    await typeMsg('phase-analyze', '🔍 SCANNING', `> Analyzing ${decisions.length} decisions across ${categories.length} life domains.`);
+    await sleep(1000);
+
+    let report = [];
+    categories.forEach(cat => {
+        const catDecs = decisions.filter(d => d.category === cat);
+        if (catDecs.length > 1) {
+            report.push(`- **${cat}**: Recorded ${catDecs.length} commitments. Historical consistency is ${consistencyScore}%.`);
+        }
+    });
+
+    const div = document.createElement('div'); div.className = 'review-block';
+    div.innerHTML = `
+        <div class="review-label">🛡️ Strategic Accountability Roadmap</div>
+        <div class="block-text">
+            <strong>Memory Summary:</strong> ${report.join('<br>')}<br><br>
+            <strong>Autonomous Recommendation:</strong> ${consistencyScore > 80 
+                ? 'Your decision-action alignment is elite. Continue high-integrity execution.' 
+                : 'Warning: Pattern of "Goal Drift" detected. Focus on one high-impact path for 14 days without pivoting.'}
+        </div>
+    `;
+    termBody().appendChild(div);
+    termBody().scrollTop = termBody().scrollHeight;
+    showToast('🧠 Review Complete');
 }
 
 // ===== TEXT ANALYSIS (LEGACY COMPAT) =====
@@ -473,15 +554,24 @@ async function startAgent(){
     localStorage.setItem('dw_blockchain', JSON.stringify(blockchain));
     localStorage.setItem('dw_decisions', JSON.stringify(decisions));
 
-    const finalBlock = document.createElement('div'); finalBlock.className='msg-block';
+    const finalBlock = document.createElement('div'); 
+    finalBlock.className = 'cert-card';
     finalBlock.innerHTML = `
-        <div class="block-label">🔒 Witnessed Record</div>
+        <div class="cert-seal">📜</div>
+        <div class="cert-title">Commitment Witnessed</div>
+        <div class="block-text" style="font-size: 1.1rem; color: var(--text); margin-bottom: 20px;">
+            I, the Decision Witness Agent, hereby certify the following commitment under SHA-256 integrity:
+        </div>
         <div class="block-text">
-            <strong>Decision Extract:</strong> ${winner.option}<br>
-            <strong>Category:</strong> ${category}<br>
-            <strong>Consistency Score:</strong> ${consistencyScore}%<br>
-            <strong>Recommendation:</strong> ${winner.composite > 70 ? 'Proceed with high commitment.' : 'Re-evaluate decision logic before proceeding.'}<br>
-            <div style="font-family:var(--mono); font-size:0.65rem; margin-top:10px; color:var(--muted)">HASH: ${finalHash}</div>
+            <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+                <strong>PRIMARY GOAL:</strong> ${esc(winner.option)}<br>
+                <strong>DOMAIN:</strong> ${category}<br>
+                <strong>CONSISTENCY RATING:</strong> ${consistencyScore}%
+            </div>
+            <strong>STRATEGIC VERDICT:</strong> ${winner.composite > 75 ? 'Optimal high-impact path detected.' : 'Proceeding with caution; alignment is suboptimal.'}<br><br>
+            <div style="font-family:var(--mono); font-size:0.55rem; color:var(--muted); border-top: 1px solid var(--border); padding-top: 10px;">
+                BLOCK HASH: ${finalHash}
+            </div>
         </div>
     `;
     termBody().appendChild(finalBlock);
@@ -489,6 +579,7 @@ async function startAgent(){
     
     renderResults(results);
     renderLedger();
+    renderTimeline();
     document.getElementById('results-section').style.display='block';
     document.getElementById('ledger-section').style.display='block';
     setTimeout(()=>{document.querySelectorAll('.sb-fill').forEach(b=>{b.style.width=b.dataset.w+'%'})},300);
@@ -517,10 +608,15 @@ function renderResults(res){
 }
 
 function renderLedger(){
-    document.getElementById('chain-container').innerHTML=blockchain.slice().reverse().map((b,i)=>`
-        <div class="chain-b"><div class="cb-head"><span class="cb-id">Decision #${b.id || b.index}</span><span class="cb-time">${new Date(b.timestamp).toLocaleString()}</span></div>
-        <div class="cb-opt"><strong>${esc(b.option)}</strong> [${b.category}]</div>
-        <div class="cb-hash" style="color:var(--cyan)">Score: ${b.score}% | Hash: ${b.hash.substring(0,32)}...</div></div>`).join('');
+    document.getElementById('chain-container').innerHTML = blockchain.slice().reverse().map((b,i)=>`
+        <div class="chain-b" style="border-left: 3px solid ${b.score > 80 ? 'var(--green)' : 'var(--amber)'}">
+            <div class="cb-head">
+                <span class="cb-id">SEQ #${b.index}</span>
+                <span class="cb-time">${new Date(b.timestamp).toLocaleTimeString()}</span>
+            </div>
+            <div class="cb-opt">${esc(b.option)}</div>
+            <div class="cb-hash">SCORE: ${b.score}% | ${b.category} | HASH: ${b.hash.substring(0,16)}...</div>
+        </div>`).join('');
 }
 
 function loadSample(){
