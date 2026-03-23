@@ -140,12 +140,28 @@
         .chain-link{text-align:center;color:var(--purple);font-size:.65rem;padding:2px 0;opacity:.5}
 
         .toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(100px);background:rgba(15,15,12,.95);backdrop-filter:blur(20px);border:1px solid var(--cyan);border-radius:var(--rs);padding:10px 20px;color:var(--cyan);font-size:.8rem;font-weight:500;z-index:2000;transition:transform .4s;box-shadow:0 0 30px rgba(200,168,78,.2)}
-        .toast.show{transform:translateX(-50%) translateY(0)}
+        .score-display{position:fixed;top:20px;right:20px;z-index:100;background:var(--card);backdrop-filter:blur(20px);border:1px solid var(--cyan);border-radius:var(--rs);padding:10px 20px;display:flex;flex-direction:column;align-items:center;box-shadow:0 0 30px rgba(200,168,78,.2);animation:slideIn .5s}
+        .score-val{font-size:1.8rem;font-weight:800;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1}
+        .score-label{font-size:.6rem;text-transform:uppercase;letter-spacing:1px;color:var(--text2);margin-top:4px}
+        @keyframes slideIn{from{transform:translateX(100px);opacity:0}to{transform:translateX(0);opacity:1}}
 
-        .footer{text-align:center;padding:30px 20px;color:var(--muted);font-size:.7rem}
-        .footer a{color:var(--cyan);text-decoration:none}
+        .timeline-container{margin-top:20px;border-left:2px solid var(--border);padding-left:20px;margin-left:10px}
+        .timeline-item{position:relative;margin-bottom:24px}
+        .timeline-item::before{content:'';position:absolute;left:-27px;top:5px;width:12px;height:12px;background:var(--bg);border:2px solid var(--cyan);border-radius:50%;box-shadow:0 0 10px var(--glow)}
+        .timeline-date{font-size:.65rem;color:var(--muted);margin-bottom:4px}
+        .timeline-content{font-size:.85rem;color:var(--text2)}
 
-        @media(max-width:640px){.app{padding:20px 14px 60px}.card{padding:20px 16px}.score-bars{grid-template-columns:1fr}.rc-head{flex-direction:column}.stats{grid-template-columns:repeat(2,1fr)}.pipeline{gap:3px}.pipe-step{min-width:60px;font-size:.55rem;padding:6px 4px}}
+        .msg-block{background:rgba(200,168,78,.03);border:1px solid rgba(200,168,78,.1);border-radius:var(--rs);padding:15px;margin-top:10px}
+        .block-label{font-size:.7rem;font-weight:800;color:var(--cyan);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+        .block-text{font-size:.85rem;line-height:1.6;color:var(--text2)}
+        .warning-block{border-color:var(--red);background:rgba(196,92,74,.05)}
+        .warning-block .block-label{color:var(--red)}
+
+        @media(max-width:640px){
+            .score-display{top:auto;bottom:20px;right:10px;left:auto;padding:8px 15px}
+            .score-val{font-size:1.4rem}
+            .app{padding:20px 14px 100px}
+        }
     </style>
 </head>
 <body>
@@ -153,12 +169,17 @@
 <div class="grid-ov"></div>
 <div class="toast" id="toast"></div>
 
+<div class="score-display">
+    <div class="score-val" id="consistency-score">100</div>
+    <div class="score-label">Consistency Score</div>
+</div>
+
 <div class="app">
     <header class="hero">
-        <div class="badge"><span class="badge-dot"></span> Fully Autonomous • No External APIs</div>
+        <div class="badge"><span class="badge-dot"></span> Autonomous Accountability System • Hash Verified</div>
         <div class="hero-icon">🧠</div>
         <h1>Decision Witness Agent</h1>
-        <p>An autonomous AI agent that thinks, analyzes, compares, and witnesses your decisions step-by-step with blockchain integrity</p>
+        <p>I don't just analyze. I witness, track, and enforce accountability over your decisions with cryptographic immutable integrity.</p>
     </header>
 
     <section class="card" id="input-panel">
@@ -214,18 +235,31 @@
 </div>
 
 <script>
-// ===== GLOBALS =====
+// ===== GLOBALS & MEMORY =====
 let blockchain = JSON.parse(localStorage.getItem('dw_blockchain') || '[]');
+let decisions = JSON.parse(localStorage.getItem('dw_decisions') || '[]');
+let consistencyScore = parseInt(localStorage.getItem('dw_score') || '100');
+
 window.addEventListener('DOMContentLoaded', () => {
+    updateScoreUI();
     if(blockchain.length > 0) {
         document.getElementById('ledger-section').style.display = 'block';
         renderLedger();
     }
 });
+
+function updateScoreUI() {
+    const el = document.getElementById('consistency-score');
+    el.textContent = consistencyScore;
+    if(consistencyScore < 50) el.style.color = 'var(--red)';
+    else if(consistencyScore < 80) el.style.color = 'var(--amber)';
+    else el.style.color = 'var(--cyan)';
+}
+
 const PHASES = [
     {id:'parse',label:'📥 Parse',phase:'think'},
-    {id:'understand',label:'🧠 Understand',phase:'think'},
-    {id:'analyze',label:'🔬 Analyze',phase:'analyze'},
+    {id:'recall',label:'🧠 Recall',phase:'think'},
+    {id:'challenge',label:'⚠️ Challenge',phase:'analyze'},
     {id:'compare',label:'⚖️ Compare',phase:'compare'},
     {id:'rank',label:'🏆 Rank',phase:'rank'},
     {id:'sign',label:'🔐 Sign',phase:'sign'}
@@ -238,9 +272,35 @@ async function sha256(msg){
     return Array.from(new Uint8Array(h)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
 
-// ===== TEXT ANALYSIS =====
-function fp(s){let h=0;for(let i=0;i<s.length;i++){h=((h<<5)-h+s.charCodeAt(i))|0}return Math.abs(h%1000)/1000}
+// ===== ACCOUNTABILITY ENGINE =====
+function extractCategory(text, ctx) {
+    const t = (text + ' ' + ctx).toLowerCase();
+    if (t.includes('career') || t.includes('job') || t.includes('work') || t.includes('مهنة') || t.includes('عمل')) return 'Career';
+    if (t.includes('learn') || t.includes('study') || t.includes('code') || t.includes('برمجة') || t.includes('دراسة')) return 'Learning';
+    if (t.includes('money') || t.includes('finance') || t.includes('buy') || t.includes('مال') || t.includes('شراء')) return 'Finance';
+    if (t.includes('health') || t.includes('food') || t.includes('gym') || t.includes('صحة') || t.includes('طعام')) return 'Health';
+    return 'General';
+}
 
+function detectContradictions(currentText, currentCategory) {
+    let issues = [];
+    decisions.forEach(prev => {
+        if (prev.category === currentCategory) {
+            // Simple keyword-based drift detection
+            const prevWords = prev.text.toLowerCase().split(' ');
+            const currentWords = currentText.toLowerCase().split(' ');
+            const overlap = currentWords.filter(w => prevWords.includes(w) && w.length > 3);
+            
+            if (overlap.length === 0 && currentWords.length > 3) {
+                issues.push(`Goal Drift: You previously committed to "${prev.text}" in ${prev.category}, but this new direction seems unrelated.`);
+            }
+        }
+    });
+    return issues;
+}
+
+// ===== TEXT ANALYSIS (LEGACY COMPAT) =====
+function fp(s){let h=0;for(let i=0;i<s.length;i++){h=((h<<5)-h+s.charCodeAt(i))|0}return Math.abs(h%1000)/1000}
 const KW={
     fp_en:['simple','basic','easy','quick','fast','ready','proven','stable','free','lightweight','standard','popular','practical','achievable'],
     fn_en:['complex','difficult','hard','challenging','experimental','risky','expensive','custom','scratch','complicated','uncertain'],
@@ -255,7 +315,6 @@ const KW={
     lp_ar:['باستخدام','عبر','من خلال','بواسطة','لأن','نظام','خطة','استراتيجية','حل','طريقة','منصة','تطبيق','برنامج','مشروع','هدف'],
     ln_ar:['ممكن','يمكن','ربما','شي','أي شيء','مش عارف','عشوائي']
 };
-
 function kwMatch(t,arr){let c=0;arr.forEach(k=>{if(t.includes(k))c++});return c}
 
 function analyzeOne(opt,ctx){
@@ -265,27 +324,14 @@ function analyzeOne(opt,ctx){
     const words=opt.trim().split(/\s+/).filter(w=>w.length>0),wc=words.length;
     const awl=wc>0?words.reduce((s,w)=>s+w.length,0)/wc:0;
     const hasAr=/[\u0600-\u06FF]/.test(opt),hasNum=/\d/.test(opt);
-
-    let fe=35+(f1*25);
-    fe+=kwMatch(t,KW.fp_en)*5-kwMatch(t,KW.fn_en)*5+kwMatch(t,KW.fp_ar)*6-kwMatch(t,KW.fn_ar)*6;
-    if(wc>=3&&wc<=8)fe+=6;if(wc===1)fe-=3;if(awl>=3&&awl<=6)fe+=3;if(div>.6)fe+=4;
-    fe+=Math.floor(f2*12)-6;
-
-    let im=30+(f2*30);
-    im+=kwMatch(t,KW.ip_en)*5-kwMatch(t,KW.in_en)*5+kwMatch(t,KW.ip_ar)*6-kwMatch(t,KW.in_ar)*5;
-    if(wc>=4&&wc<=12)im+=7;if(wc>=2&&wc<=3)im+=3;if(opt.length>50)im+=5;if(opt.length<10)im-=5;if(hasNum)im+=4;
-    im+=Math.floor(f3*14)-7;
-
-    let lo=30+(f3*28);
-    lo+=kwMatch(t,KW.lp_en)*5-kwMatch(t,KW.ln_en)*7+kwMatch(t,KW.lp_ar)*5-kwMatch(t,KW.ln_ar)*6;
-    if(wc>=3)lo+=8;if(wc===1)lo-=6;if(div>.5)lo+=5;if(hasAr||/[A-Z]/.test(opt[0]))lo+=4;if(hasNum)lo+=3;if(awl>2)lo+=3;
-    lo+=Math.floor(f1*10)-5;
-
+    let fe=35+(f1*25); fe+=kwMatch(t,KW.fp_en)*5-kwMatch(t,KW.fn_en)*5+kwMatch(t,KW.fp_ar)*6-kwMatch(t,KW.fn_ar)*6;
+    if(wc>=3&&wc<=8)fe+=6;if(wc===1)fe-=3;if(awl>=3&&awl<=6)fe+=3;if(div>.6)fe+=4; fe+=Math.floor(f2*12)-6;
+    let im=30+(f2*30); im+=kwMatch(t,KW.ip_en)*5-kwMatch(t,KW.in_en)*5+kwMatch(t,KW.ip_ar)*6-kwMatch(t,KW.in_ar)*5;
+    if(wc>=4&&wc<=12)im+=7;if(wc>=2&&wc<=3)im+=3;if(opt.length>50)im+=5;if(opt.length<10)im-=5;if(hasNum)im+=4; im+=Math.floor(f3*14)-7;
+    let lo=30+(f3*28); lo+=kwMatch(t,KW.lp_en)*5-kwMatch(t,KW.ln_en)*7+kwMatch(t,KW.lp_ar)*5-kwMatch(t,KW.ln_ar)*6;
+    if(wc>=3)lo+=8;if(wc===1)lo-=6;if(div>.5)lo+=5;if(hasAr||/[A-Z]/.test(opt[0]))lo+=4;if(hasNum)lo+=3;if(awl>2)lo+=3; lo+=Math.floor(f1*10)-5;
     if(ctx&&ctx.length>5){const cb=2+Math.floor(fp(ctx)*5);fe+=cb;im+=Math.floor(cb*.7);lo+=Math.floor(cb*1.2)}
-
-    fe=Math.max(12,Math.min(98,Math.round(fe)));
-    im=Math.max(12,Math.min(98,Math.round(im)));
-    lo=Math.max(12,Math.min(98,Math.round(lo)));
+    fe=Math.max(12,Math.min(98,Math.round(fe))); im=Math.max(12,Math.min(98,Math.round(im))); lo=Math.max(12,Math.min(98,Math.round(lo)));
     return{option:opt,feasibility:fe,impact:im,logic:lo};
 }
 
@@ -295,76 +341,17 @@ function compareAll(raw){
     const wc=raw.map(r=>({...r,comp:(r.feasibility*.3)+(r.impact*.4)+(r.logic*.3)}));
     wc.sort((a,b)=>b.comp-a.comp);
     const mx=wc[0].comp,mn=wc[n-1].comp,rng=mx-mn;
-
     return wc.map((r,i)=>{
-        let nc;
-        if(rng<3)nc=88-(i*Math.floor(58/Math.max(n-1,1)));
-        else{const p=rng>0?(r.comp-mn)/rng:.5;nc=30+(p*60)}
+        let nc; if(rng<3)nc=88-(i*Math.floor(58/Math.max(n-1,1))); else{const p=rng>0?(r.comp-mn)/rng:.5;nc=30+(p*60)}
         nc=Math.max(15,Math.min(95,Math.round(nc)));
         const pb=Math.round((1-i/Math.max(n-1,1))*15)-7;
-        const fe=Math.max(12,Math.min(98,r.feasibility+pb));
-        const im=Math.max(12,Math.min(98,r.impact+Math.round(pb*1.2)));
-        const lo=Math.max(12,Math.min(98,r.logic+Math.round(pb*.8)));
-        let rank,rc;
-        if(n<=2){if(i===0){rank='HIGH';rc='rh'}else{rank='MEDIUM';rc='rm'}}
-        else{const t3=Math.max(1,Math.ceil(n/3)),b3=n-Math.max(1,Math.ceil(n/3));
-            if(i<t3){rank='HIGH';rc='rh'}else if(i>=b3){rank='LOW';rc='rl'}else{rank='MEDIUM';rc='rm'}}
-        const reasoning=buildReason(r.option,{feasibility:fe,impact:im,logic:lo},rank,i+1,n);
-        return{option:r.option,rank,rc,feasibility:fe,impact:im,logic:lo,composite:nc,reasoning};
+        const fe=Math.max(12,Math.min(98,r.feasibility+pb)); const im=Math.max(12,Math.min(98,r.impact+Math.round(pb*1.2))); const lo=Math.max(12,Math.min(98,r.logic+Math.round(pb*.8)));
+        let rank,rc; if(n<=2){if(i===0){rank='HIGH';rc='rh'}else{rank='MEDIUM';rc='rm'}} else{const t3=Math.max(1,Math.ceil(n/3)),b3=n-Math.max(1,Math.ceil(n/3)); if(i<t3){rank='HIGH';rc='rh'}else if(i>=b3){rank='LOW';rc='rl'}else{rank='MEDIUM';rc='rm'}}
+        return{option:r.option,rank,rc,feasibility:fe,impact:im,logic:lo,composite:nc};
     });
 }
 
-// Detect if text is primarily Arabic
 function isArabic(text){return(/[\u0600-\u06FF]/.test(text)&&(text.match(/[\u0600-\u06FF]/g)||[]).length>(text.match(/[a-zA-Z]/g)||[]).length)}
-
-function buildReason(opt,s,rank,pos,tot){
-    const ar=isArabic(opt);
-    const nm=`"${opt}"`;const p=[];
-    if(ar){
-        if(tot>1){if(pos===1)p.push(`${nm} يحتل المرتبة #1 من ${tot} خيارات.`);else if(pos===tot)p.push(`${nm} يحتل المرتبة الأخيرة (#${pos}) من ${tot} خيارات.`);else p.push(`${nm} يحتل المرتبة #${pos} من ${tot} خيارات.`)}
-        const f=s.feasibility;
-        if(f>=80)p.push(`جدوى ممتازة (${f}%) — خيار عملي جداً وسهل التنفيذ.`);
-        else if(f>=65)p.push(`جدوى جيدة (${f}%) — قابل للتحقيق بجهد معقول.`);
-        else if(f>=50)p.push(`جدوى متوسطة (${f}%) — ممكن لكن يحتاج تخطيط.`);
-        else if(f>=35)p.push(`جدوى أقل من المتوسط (${f}%) — توجد عقبات ملحوظة.`);
-        else p.push(`جدوى محدودة (${f}%) — عقبات كبيرة.`);
-        const im=s.impact;
-        if(im>=80)p.push(`تأثير استثنائي (${im}%) — قد يحقق نتائج تحويلية.`);
-        else if(im>=65)p.push(`تأثير قوي (${im}%) — قيمة كبيرة متوقعة.`);
-        else if(im>=50)p.push(`تأثير متوسط (${im}%) — قيمة معقولة.`);
-        else if(im>=35)p.push(`تأثير محدود (${im}%) — نطاق محدود.`);
-        else p.push(`تأثير ضعيف (${im}%) — قد لا يبرر الجهد.`);
-        const l=s.logic;
-        if(l>=80)p.push(`وضوح ممتاز (${l}%) — مصاغ بشكل واضح ومحدد.`);
-        else if(l>=65)p.push(`وضوح جيد (${l}%) — منظم بشكل جيد.`);
-        else if(l>=50)p.push(`وضوح مقبول (${l}%) — يحتاج مزيد من التفاصيل.`);
-        else if(l>=35)p.push(`يحتاج تحسين (${l}%) — يفتقر للتحديد.`);
-        else p.push(`غامض (${l}%) — يحتاج تفاصيل واضحة.`);
-        if(rank==='HIGH')p.push('✅ مرشح قوي — يُنصح بتبنيه.');else if(rank==='MEDIUM')p.push('⚡ خيار مقبول — يُنظر فيه إذا لم تتوفر الخيارات الأفضل.');else p.push('⚠️ أولوية أقل — يُفضل استكشاف خيارات أخرى.');
-    } else {
-        if(tot>1){if(pos===1)p.push(`${nm} ranks #1 out of ${tot} options.`);else if(pos===tot)p.push(`${nm} ranks last (#${pos}) among ${tot} options.`);else p.push(`${nm} ranks #${pos} out of ${tot} options.`)}
-        const f=s.feasibility;
-        if(f>=80)p.push(`Excellent feasibility (${f}%) — highly practical with minimal barriers.`);
-        else if(f>=65)p.push(`Good feasibility (${f}%) — achievable with reasonable effort.`);
-        else if(f>=50)p.push(`Moderate feasibility (${f}%) — possible but needs planning.`);
-        else if(f>=35)p.push(`Below-average feasibility (${f}%) — notable hurdles exist.`);
-        else p.push(`Limited feasibility (${f}%) — significant obstacles.`);
-        const im=s.impact;
-        if(im>=80)p.push(`Exceptional impact (${im}%) — could deliver transformative results.`);
-        else if(im>=65)p.push(`Strong impact (${im}%) — significant value expected.`);
-        else if(im>=50)p.push(`Moderate impact (${im}%) — reasonable value delivery.`);
-        else if(im>=35)p.push(`Fair impact (${im}%) — limited scope.`);
-        else p.push(`Low impact (${im}%) — may not justify effort.`);
-        const l=s.logic;
-        if(l>=80)p.push(`Outstanding clarity (${l}%) — well-articulated.`);
-        else if(l>=65)p.push(`Good clarity (${l}%) — well-structured.`);
-        else if(l>=50)p.push(`Fair clarity (${l}%) — could use more detail.`);
-        else if(l>=35)p.push(`Needs improvement (${l}%) — lacks specificity.`);
-        else p.push(`Vague (${l}%) — needs concrete details.`);
-        if(rank==='HIGH')p.push('✅ Strong candidate.');else if(rank==='MEDIUM')p.push('⚡ Viable option.');else p.push('⚠️ Lower priority.');
-    }
-    return p.join(' ');
-}
 
 // ===== AGENT UI HELPERS =====
 const termBody=()=>document.getElementById('term-body');
@@ -375,44 +362,25 @@ function showToast(m){const t=document.getElementById('toast');t.textContent=m;t
 function setPipeline(activeIdx){
     const el=document.getElementById('pipeline');
     el.innerHTML=PHASES.map((ph,i)=>{
-        let cls='pipe-step';
-        if(i<activeIdx)cls+=' done';else if(i===activeIdx)cls+=' active';
+        let cls='pipe-step'; if(i<activeIdx)cls+=' done';else if(i===activeIdx)cls+=' active';
         return `<div class="${cls}">${ph.label}</div>`;
     }).join('');
 }
 
 async function typeMsg(phaseClass,phaseLabel,text,isRtl=false){
-    const tb=termBody();
-    const div=document.createElement('div');div.className='agent-msg';
+    const tb=termBody(); const div=document.createElement('div');div.className='agent-msg';
     const badge=document.createElement('div');badge.className=`msg-phase ${phaseClass}`;badge.textContent=phaseLabel;
     const content=document.createElement('div');content.className='msg-text'+(isRtl?' rtl-text':'');
     const cursor=document.createElement('span');cursor.className='typing-cursor';
     div.appendChild(badge);div.appendChild(content);content.appendChild(cursor);
     tb.appendChild(div);tb.scrollTop=tb.scrollHeight;
-
-    // Type character by character
-    const chars=[...text];
-    let buffer='';
+    const chars=[...text]; let buffer='';
     for(let i=0;i<chars.length;i++){
-        buffer+=chars[i];
-        content.innerHTML=buffer;content.appendChild(cursor);
+        buffer+=chars[i]; content.innerHTML=buffer;content.appendChild(cursor);
         tb.scrollTop=tb.scrollHeight;
-        await sleep(chars.length>200?8:chars.length>100?12:18);
+        await sleep(chars.length>200?6:chars.length>100?10:14);
     }
-    content.innerHTML=buffer;// remove cursor
-    tb.scrollTop=tb.scrollHeight;
-    return div;
-}
-
-async function addMsg(phaseClass,phaseLabel,text,isRtl=false){
-    const tb=termBody();
-    const div=document.createElement('div');div.className='agent-msg';
-    const badge=document.createElement('div');badge.className=`msg-phase ${phaseClass}`;badge.textContent=phaseLabel;
-    const content=document.createElement('div');content.className='msg-text'+(isRtl?' rtl-text':'');
-    content.innerHTML=text;
-    div.appendChild(badge);div.appendChild(content);
-    tb.appendChild(div);tb.scrollTop=tb.scrollHeight;
-    return div;
+    content.innerHTML=buffer; tb.scrollTop=tb.scrollHeight; return div;
 }
 
 // ===== MAIN AGENT FLOW =====
@@ -421,42 +389,7 @@ async function startAgent(){
     const context=document.getElementById('ctx').value.trim();
     if(!optionsText){showToast('⚠️ Please enter at least one option');return}
     const options=optionsText.split('\n').map(o=>o.trim()).filter(o=>o.length>0);
-    if(!options.length){showToast('⚠️ Please enter at least one option');return}
-
-    // Detect language for agent responses
-    const inputAr=isArabic(optionsText);
-    const L=inputAr?{
-        recv:`> تم استلام ${options.length} خيار(ات) للتحليل.`,
-        ctx:`  سياق القرار: "${esc(context)}"`,
-        struct:'> جاري تحليل بنية النص لكل خيار...',
-        signals:'> تم استخراج الإشارات النصية. الانتقال للتحليل العميق...',
-        eval:'> جاري تقييم الجدوى والتأثير والمنطق لكل خيار...',
-        scored:'> تم حساب الدرجات الفردية. الانتقال للتحليل المقارن...',
-        comparing:`> مقارنة جميع الخيارات (${options.length}) ببعضها البعض...`,
-        ranked:'> اكتمل الترتيب المقارن. الخيار الأفضل:',
-        breakdown:'> التوزيع النهائي:',
-        best:'> 🟢 أفضل خيار:',
-        signing:'> جاري توليد هاشات SHA-256 لسلامة القرار...',
-        sealed:'> تم ختم البلوك تشين:',
-        done:`> اكتمل تحليل الوكيل. ${options.length} خيارات تم تحليلها وترتيبها وتوقيعها.`,
-        toast:`✅ Agent completed — ${options.length} options`
-    }:{
-        recv:`> Received ${options.length} decision option(s) to analyze.`,
-        ctx:`  Decision context: "${esc(context)}"`,
-        struct:'> Analyzing text structure for each option...',
-        signals:'> Text signals extracted. Proceeding to deep analysis...',
-        eval:'> Running feasibility, impact, and logic evaluation...',
-        scored:'> Individual scores computed. Moving to comparative analysis...',
-        comparing:`> Comparing all ${options.length} options against each other...`,
-        ranked:'> Comparative ranking complete. Top pick:',
-        breakdown:'> Final breakdown:',
-        best:'> 🟢 Best option:',
-        signing:'> Generating SHA-256 blockchain hashes for decision integrity...',
-        sealed:'> Blockchain sealed:',
-        done:`> Agent analysis complete. ${options.length} options analyzed, ranked, and signed.`,
-        toast:`✅ Agent completed — ${options.length} options`
-    };
-
+    
     const btn=document.getElementById('run-btn');
     btn.disabled=true;btn.style.opacity='.5';btn.style.pointerEvents='none';
 
@@ -468,95 +401,92 @@ async function startAgent(){
     sec.scrollIntoView({behavior:'smooth'});
     await sleep(500);
 
-    // ===== PHASE 1: PARSE =====
+    // Phase 1: PARSE
     setPipeline(0);
-    await typeMsg('phase-think','📥 PARSING',L.recv,inputAr);
-    await sleep(300);
-    for(let i=0;i<options.length;i++){
-        await typeMsg('phase-think','📥 INPUT',`  Option[${i}]: "${esc(options[i])}"`);
-        await sleep(150);
-    }
-    if(context){await typeMsg('phase-think','📥 CONTEXT',L.ctx,inputAr)}
+    const category = extractCategory(optionsText, context);
+    await typeMsg('phase-think','📥 PARSING', `> Initializing protocol. Intent detected: [${category}]`);
     await sleep(400);
 
-    // ===== PHASE 2: UNDERSTAND =====
+    // Phase 2: RECALL (Memory Retrieval)
     setPipeline(1);
-    await typeMsg('phase-think','🧠 UNDERSTANDING',L.struct,inputAr);
-    await sleep(300);
-    for(let i=0;i<options.length;i++){
-        const opt=options[i];
-        const wc=opt.trim().split(/\s+/).length;
-        const hasAr2=/[\u0600-\u06FF]/.test(opt),hasEn2=/[a-zA-Z]/.test(opt);
-        const lang=hasAr2&&hasEn2?'Mixed AR+EN':hasAr2?'Arabic':'English';
-        await typeMsg('phase-think','🧠 SIGNAL',`  Option[${i}]: ${wc} words, ${opt.length} chars, lang=${lang}`);
-        await sleep(200);
-    }
-    await typeMsg('phase-think','🧠 THOUGHT',L.signals,inputAr);
-    await sleep(500);
+    await typeMsg('phase-think','🧠 RECALLING', `> Accessing historical decision ledger. Searching [${category}] history...`);
+    await sleep(600);
+    const historyCount = decisions.filter(d => d.category === category).length;
+    await typeMsg('phase-think','🧠 MEMORY', `  System found ${historyCount} related records in memory.`);
+    await sleep(400);
 
-    // ===== PHASE 3: ANALYZE =====
+    // Phase 3: CHALLENGE (Contradiction Detection)
     setPipeline(2);
-    await typeMsg('phase-analyze','🔬 ANALYZING',L.eval,inputAr);
-    await sleep(300);
-    const rawResults=[];
-    for(let i=0;i<options.length;i++){
-        const r=analyzeOne(options[i],context);
-        rawResults.push(r);
-        await typeMsg('phase-analyze','🔬 EVAL',`  Option[${i}] "${esc(options[i])}":\n    Feasibility=${r.feasibility}%  Impact=${r.impact}%  Logic=${r.logic}%`);
-        await sleep(350);
+    await typeMsg('phase-analyze','⚠️ CHALLENGING', `> Cross-referencing current input with past commitments...`);
+    await sleep(800);
+    const contradictions = detectContradictions(optionsText, category);
+    
+    if (contradictions.length > 0) {
+        consistencyScore = Math.max(0, consistencyScore - (contradictions.length * 15));
+        const div = document.createElement('div'); div.className='msg-block warning-block';
+        div.innerHTML = `<div class="block-label">❌ Contradiction Detected</div>
+                         <div class="block-text">${contradictions[0]}</div>`;
+        termBody().appendChild(div);
+        await sleep(1000);
+    } else {
+        consistencyScore = Math.min(100, consistencyScore + 2);
+        await typeMsg('phase-analyze','✅ VALIDATED', `> No direct contradictions found. Consistency maintains at ${consistencyScore}%.`);
     }
-    await typeMsg('phase-analyze','🔬 THOUGHT',L.scored,inputAr);
-    await sleep(500);
+    updateScoreUI();
+    localStorage.setItem('dw_score', consistencyScore);
 
-    // ===== PHASE 4: COMPARE =====
+    // Phase 4: COMPARE
     setPipeline(3);
-    await typeMsg('phase-compare','⚖️ COMPARING',L.comparing,inputAr);
-    await sleep(400);
-    const results=compareAll(rawResults);
-    for(let i=0;i<results.length;i++){
-        const r=results[i];
-        await typeMsg('phase-compare','⚖️ RANK',`  #${i+1}: "${esc(r.option)}" → composite=${r.composite}/100 → ${r.rank}`);
-        await sleep(300);
-    }
-    await typeMsg('phase-compare','⚖️ THOUGHT',`${L.ranked} "${esc(results[0].option)}"`,inputAr);
+    const rawResults = options.map(opt => analyzeOne(opt, context));
+    const results = compareAll(rawResults);
+    await typeMsg('phase-compare','⚖️ COMPARISON', `> Evaluated ${options.length} alternatives against accountability standard.`);
     await sleep(500);
 
-    // ===== PHASE 5: RANK =====
+    // Phase 5: RANK
     setPipeline(4);
-    const highOpts=results.filter(r=>r.rank==='HIGH');
-    const medOpts=results.filter(r=>r.rank==='MEDIUM');
-    const lowOpts=results.filter(r=>r.rank==='LOW');
-    await typeMsg('phase-rank','🏆 DECISION',`${L.breakdown} HIGH=${highOpts.length}, MEDIUM=${medOpts.length}, LOW=${lowOpts.length}`);
-    await sleep(300);
-    if(highOpts.length>0){
-        await typeMsg('phase-rank','🏆 VERDICT',`${L.best} "${esc(highOpts[0].option)}" — score ${highOpts[0].composite}/100`,inputAr);
-    }
-    await sleep(500);
-
-    // ===== PHASE 6: BLOCKCHAIN SIGN =====
-    setPipeline(5);
-    await typeMsg('phase-sign','🔐 SIGNING',L.signing,inputAr);
-    await sleep(300);
-    blockchain=[];
-    let prevHash='0'.repeat(64);
-    const ts=new Date().toISOString();
-    for(const r of results){
-        const data=`${r.option}|${r.rank}|${r.composite}|${r.feasibility}|${r.impact}|${r.logic}|${ts}|${prevHash}`;
-        const hash=await sha256(data);
-        blockchain.push({index:blockchain.length+1,option:r.option,rank:r.rank,hash,previousHash:prevHash,timestamp:ts});
-        r.hash=hash;
-        prevHash=hash;
-        await typeMsg('phase-sign','🔐 HASH',`  Block[${blockchain.length}]: ${hash.substring(0,32)}...`);
-        await sleep(250);
-    }
-    await typeMsg('phase-sign','🔐 CHAIN',`${L.sealed} ${blockchain.length} blocks → SHA-256.`);
-    localStorage.setItem('dw_blockchain', JSON.stringify(blockchain));
+    const winner = results[0];
+    await typeMsg('phase-rank','🏆 VERDICT', `> TOP PICK: "${winner.option}" (Confidence: ${winner.composite}%)`);
     await sleep(400);
 
-    // ===== DONE =====
-    setPipeline(6);
-    await typeMsg('phase-done','✅ COMPLETE',L.done,inputAr);
+    // Phase 6: SIGN
+    setPipeline(5);
+    await typeMsg('phase-sign','🔐 SIGNING', `> Generating cryptographic proof for accountability ledger...`);
+    await sleep(500);
+    
+    // Final Structured Output
+    const currentTS = new Date().toISOString();
+    const prevHash = blockchain.length > 0 ? blockchain[blockchain.length-1].hash : '0'.repeat(64);
+    const dataString = `${winner.option}|${category}|${consistencyScore}|${currentTS}|${prevHash}`;
+    const finalHash = await sha256(dataString);
 
+    const block = {
+        index: blockchain.length + 1,
+        option: winner.option,
+        category: category,
+        score: consistencyScore,
+        hash: finalHash,
+        timestamp: currentTS,
+        previousHash: prevHash
+    };
+    blockchain.push(block);
+    decisions.push({text: winner.option, category: category, timestamp: currentTS});
+    localStorage.setItem('dw_blockchain', JSON.stringify(blockchain));
+    localStorage.setItem('dw_decisions', JSON.stringify(decisions));
+
+    const finalBlock = document.createElement('div'); finalBlock.className='msg-block';
+    finalBlock.innerHTML = `
+        <div class="block-label">🔒 Witnessed Record</div>
+        <div class="block-text">
+            <strong>Decision Extract:</strong> ${winner.option}<br>
+            <strong>Category:</strong> ${category}<br>
+            <strong>Consistency Score:</strong> ${consistencyScore}%<br>
+            <strong>Recommendation:</strong> ${winner.composite > 70 ? 'Proceed with high commitment.' : 'Re-evaluate decision logic before proceeding.'}<br>
+            <div style="font-family:var(--mono); font-size:0.65rem; margin-top:10px; color:var(--muted)">HASH: ${finalHash}</div>
+        </div>
+    `;
+    termBody().appendChild(finalBlock);
+    termBody().scrollTop = termBody().scrollHeight;
+    
     renderResults(results);
     renderLedger();
     document.getElementById('results-section').style.display='block';
@@ -564,55 +494,43 @@ async function startAgent(){
     setTimeout(()=>{document.querySelectorAll('.sb-fill').forEach(b=>{b.style.width=b.dataset.w+'%'})},300);
 
     btn.disabled=false;btn.style.opacity='1';btn.style.pointerEvents='auto';
-    showToast(L.toast);
+    showToast('🚀 Consistency Witnessed!');
 }
 
-// ===== RENDER =====
-function renderResults(results){
-    const s=document.getElementById('stats');
-    const c=document.getElementById('results-container');
-    const h=results.filter(r=>r.rank==='HIGH').length,m=results.filter(r=>r.rank==='MEDIUM').length,l=results.filter(r=>r.rank==='LOW').length;
-    s.innerHTML=`<div class="stat"><div class="stat-v">${results.length}</div><div class="stat-l">Total</div></div>
-        <div class="stat"><div class="stat-v" style="background:linear-gradient(135deg,var(--green),#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent">${h}</div><div class="stat-l">High</div></div>
-        <div class="stat"><div class="stat-v" style="background:linear-gradient(135deg,var(--amber),#d97706);-webkit-background-clip:text;-webkit-text-fill-color:transparent">${m}</div><div class="stat-l">Medium</div></div>
-        <div class="stat"><div class="stat-v" style="background:linear-gradient(135deg,var(--red),#dc2626);-webkit-background-clip:text;-webkit-text-fill-color:transparent">${l}</div><div class="stat-l">Low</div></div>`;
-    c.innerHTML=results.map((r,i)=>`
+function renderResults(res){
+    const s=document.getElementById('stats'); const c=document.getElementById('results-container');
+    const h=res.filter(r=>r.rank==='HIGH').length, m=res.filter(r=>r.rank==='MEDIUM').length, l=res.filter(r=>r.rank==='LOW').length;
+    s.innerHTML=`<div class="stat"><div class="stat-v">${res.length}</div><div class="stat-l">Options</div></div>
+        <div class="stat"><div class="stat-v" style="color:var(--green)">${h}</div><div class="stat-l">Optimal</div></div>
+        <div class="stat"><div class="stat-v" style="color:var(--amber)">${m}</div><div class="stat-l">Viable</div></div>
+        <div class="stat"><div class="stat-v" style="color:var(--red)">${l}</div><div class="stat-l">Risky</div></div>`;
+    c.innerHTML=res.map((r,i)=>`
         <div class="result-card" style="animation-delay:${i*.1}s">
-            <div class="rc-head"><div><div class="rc-num">Option #${i+1} — Score: ${r.composite}/100</div><div class="rc-name">${esc(r.option)}</div></div>
-            <div class="rank-b ${r.rc}">${r.rank==='HIGH'?'🟢':r.rank==='MEDIUM'?'🟡':'🔴'} ${r.rank}</div></div>
-            <div class="rc-reasoning">${r.reasoning}</div>
+            <div class="rc-head"><div><div class="rc-num">RANK #${i+1} — ${r.composite}%</div><div class="rc-name">${esc(r.option)}</div></div>
+            <div class="rank-b ${r.rc}">${r.rank}</div></div>
             <div class="score-bars">
                 <div class="sb-item"><div class="sb-label"><span>Feasibility</span><span>${r.feasibility}%</span></div><div class="sb-bg"><div class="sb-fill c1" data-w="${r.feasibility}"></div></div></div>
                 <div class="sb-item"><div class="sb-label"><span>Impact</span><span>${r.impact}%</span></div><div class="sb-bg"><div class="sb-fill c2" data-w="${r.impact}"></div></div></div>
                 <div class="sb-item"><div class="sb-label"><span>Logic</span><span>${r.logic}%</span></div><div class="sb-bg"><div class="sb-fill c3" data-w="${r.logic}"></div></div></div>
             </div>
-            <div class="hash-d" onclick="copyHash('${r.hash}')"><span style="color:var(--cyan)">🔗</span><span class="hash-t">${r.hash}</span><span style="font-size:.65rem;color:var(--muted)">Copy</span></div>
         </div>`).join('');
 }
 
 function renderLedger(){
-    document.getElementById('chain-container').innerHTML=blockchain.map((b,i)=>`
-        ${i>0?'<div class="chain-link">⬆ linked ⬆</div>':''}
-        <div class="chain-b"><div class="cb-head"><span class="cb-id">Block #${b.index}</span><span class="cb-time">${new Date(b.timestamp).toLocaleString('en-US')}</span></div>
-        <div class="cb-opt">${esc(b.option)} — ${b.rank}</div>
-        <div class="cb-hash">Hash: ${b.hash}</div>
-        <div class="cb-hash" style="margin-top:3px;opacity:.4">Prev: ${b.previousHash.substring(0,24)}...</div></div>`).join('');
+    document.getElementById('chain-container').innerHTML=blockchain.slice().reverse().map((b,i)=>`
+        <div class="chain-b"><div class="cb-head"><span class="cb-id">Decision #${b.id || b.index}</span><span class="cb-time">${new Date(b.timestamp).toLocaleString()}</span></div>
+        <div class="cb-opt"><strong>${esc(b.option)}</strong> [${b.category}]</div>
+        <div class="cb-hash" style="color:var(--cyan)">Score: ${b.score}% | Hash: ${b.hash.substring(0,32)}...</div></div>`).join('');
 }
 
-// ===== UTILS =====
-function copyHash(h){navigator.clipboard.writeText(h).then(()=>showToast('📋 Hash copied!')).catch(()=>showToast('Hash: '+h.substring(0,20)+'...'))}
 function loadSample(){
-    document.getElementById('ctx').value='اختيار أفضل مطعم للعشاء مع الأصدقاء';
-    document.getElementById('opts').value='البيك — وجبات دجاج مشهورة وشعبية\nبرست كنتاكي — فرايد تشيكن عالمي\nشاورمر — شاورما طازجة بجودة عالية\nماكدونالدز — وجبات سريعة متنوعة\nمطعم محلي صغير — أكل بيتي بدون ضمان جودة';
+    document.getElementById('ctx').value='Career path optimization';
+    document.getElementById('opts').value='Web3 Fullstack Development\nUI/UX Design Specialist\nBlockchain Research Lead';
     showToast('📋 Sample loaded!');
 }
 function clearAll(){
-    document.getElementById('ctx').value='';document.getElementById('opts').value='';
-    document.getElementById('results-section').style.display='none';
-    document.getElementById('ledger-section').style.display='none';
-    document.getElementById('agent-section').style.display='none';
-    blockchain=[]; localStorage.removeItem('dw_blockchain');
-    showToast('🗑️ Cleared!');
+    if(!confirm('Clear all memory and history?'))return;
+    localStorage.clear(); location.reload();
 }
 </script>
 </body>
